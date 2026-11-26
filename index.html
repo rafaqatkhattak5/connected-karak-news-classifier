@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connected Karak - News AI</title>
+<style>
+:root{--bg1:#0f172a;--bg2:#2e1065;--card:rgba(255,255,255,.07);--bd:rgba(255,255,255,.15);--tx:#f1f5f9;--mut:#a5b4cf;--acc:#8b5cf6;--acc2:#06b6d4;--inp:rgba(0,0,0,.28)}
+[data-theme=light]{--bg1:#e0e7ff;--bg2:#fce7f3;--card:rgba(255,255,255,.8);--bd:rgba(99,102,241,.25);--tx:#1e1b4b;--mut:#5b6385;--inp:#fff}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--tx);min-height:100vh;background:linear-gradient(135deg,var(--bg1),var(--bg2)) fixed;padding:14px}
+.wrap{max-width:760px;margin:auto}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px}
+h1{font-size:1.25rem;background:linear-gradient(90deg,#a78bfa,#22d3ee,#f472b6);-webkit-background-clip:text;background-clip:text;color:transparent}
+.meta{color:var(--mut);font-size:.8rem}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:16px;backdrop-filter:blur(12px);margin-bottom:14px}
+.tabs{display:flex;gap:6px;margin-bottom:14px;background:var(--card);border:1px solid var(--bd);padding:5px;border-radius:14px}
+.tabs button{flex:1;padding:10px;border:0;border-radius:10px;background:transparent;color:var(--mut);font-weight:700;cursor:pointer;font-size:.9rem}
+.tabs button.on{background:linear-gradient(90deg,var(--acc),var(--acc2));color:#fff}
+textarea,select{width:100%;background:var(--inp);color:var(--tx);border:1px solid var(--bd);border-radius:12px;padding:12px;font-size:1rem;font-family:inherit}
+textarea{min-height:110px;resize:vertical}
+textarea:focus{outline:2px solid var(--acc)}
+select{width:auto;padding:8px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.btn{border:0;border-radius:12px;padding:12px 20px;font-weight:700;color:#fff;cursor:pointer;background:linear-gradient(90deg,#8b5cf6,#06b6d4);font-size:.95rem}
+.btn.alt{background:var(--card);color:var(--tx);border:1px solid var(--bd);padding:9px 14px}
+.btn:disabled{opacity:.6}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.chip{padding:6px 12px;border-radius:99px;background:var(--inp);border:1px solid var(--bd);color:var(--tx);font-size:.8rem;cursor:pointer}
+.badge{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:14px;font-size:1.3rem;font-weight:800;color:#fff}
+.bar{display:grid;grid-template-columns:110px 1fr 40px;gap:8px;align-items:center;font-size:.82rem;margin:6px 0}
+.track{height:9px;border-radius:9px;background:var(--inp);overflow:hidden}
+.track i{display:block;height:100%;border-radius:9px;transition:width .6s}
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+td,th{padding:8px;border-bottom:1px solid var(--bd);text-align:left;vertical-align:top}
+.tag{display:inline-block;padding:3px 9px;border-radius:99px;font-size:.75rem;font-weight:700;color:#fff;white-space:nowrap}
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 18px;border-radius:99px;opacity:0;transition:.3s;pointer-events:none;z-index:9}
+#toast.show{opacity:1}
+input[type=range]{accent-color:#8b5cf6;flex:1;min-width:100px}
+.hide{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div><h1>📰 Connected Karak - News AI</h1><div class="meta">English • اردو • پښتو</div></div>
+  <button class="chip" id="themeBtn">🌓 Theme</button>
+</header>
+
+<div class="tabs">
+  <button class="on" data-t="single">✍️ Single</button>
+  <button data-t="batch">📚 Batch</button>
+  <button data-t="hist">🕘 History</button>
+</div>
+
+<section id="single">
+  <div class="card">
+    <textarea id="inp" dir="auto" placeholder="Paste a headline in English, Urdu or Pashto..."></textarea>
+    <div class="chips" id="ex"></div>
+    <div class="row">
+      <span class="meta">Unsure below <b id="thv">50</b>%</span>
+      <input id="th" type="range" min="10" max="90" value="50">
+    </div>
+    <div class="row">
+      <button class="btn" id="go">Analyze ✨</button>
+      <button class="btn alt" id="clr">Clear</button>
+    </div>
+  </div>
+  <div id="res"></div>
+</section>
+
+<section id="batch" class="hide">
+  <div class="card">
+    <div class="meta" style="margin-bottom:8px">One headline per line (max 200)</div>
+    <textarea id="bin" dir="auto" style="min-height:160px"></textarea>
+    <div class="row">
+      <button class="btn" id="runB">Classify all 🚀</button>
+      <button class="btn alt" id="dlB">⬇️ Download CSV</button>
+    </div>
+  </div>
+  <div id="bres"></div>
+</section>
+
+<section id="hist" class="hide">
+  <div id="hres"></div>
+</section>
+</div>
+<div id="toast"></div>
+
+<script>
+const COL={Crime:["🚨","#ef4444"],Education:["🎓","#3b82f6"],Health:["🩺","#10b981"],Other:["📰","#64748b"],Politics:["🏛️","#8b5cf6"],Sports:["⚽","#f59e0b"],Weather:["🌦️","#06b6d4"]};
+const EX=["Heavy rain expected in Karak tonight","پولیس نے چور کو پکڑ لیا","د کرک ځوانانو کرکټ ګټلی","Free medical camp at district hospital","Vegetable prices go up before Eid"];
+const $=s=>document.querySelector(s);
+let last=null, batch=[];
+
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2400);}
+async function api(path,body){
+  const r=await fetch(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  if(!r.ok) throw new Error("Server error "+r.status);
+  return r.json();
+}
+function tag(l,u){
+  const k=u?"Other":l; const [e,c]=COL[k]||["📰","#64748b"];
+  return `<span class="tag" style="background:${c}">${e} ${u?"Other (unsure)":esc(l)}</span>`;
+}
+
+// theme
+$("#themeBtn").onclick=()=>{
+  const h=document.documentElement;
+  const n=h.dataset.theme==="dark"?"light":"dark";
+  h.dataset.theme=n; localStorage.setItem("kn_theme",n);
+};
+if(localStorage.getItem("kn_theme")) document.documentElement.dataset.theme=localStorage.getItem("kn_theme");
+
+// tabs
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x===b));
+  ["single","batch","hist"].forEach(id=>$("#"+id).classList.toggle("hide",id!==b.dataset.t));
+  if(b.dataset.t==="hist") renderHist();
+});
+
+// examples + slider
+EX.forEach(t=>{
+  const c=document.createElement("span");
+  c.className="chip"; c.dir="auto"; c.textContent=t;
+  c.onclick=()=>{$("#inp").value=t;analyze();};
+  $("#ex").appendChild(c);
+});
+$("#th").oninput=e=>$("#thv").textContent=e.target.value;
+$("#clr").onclick=()=>{$("#inp").value="";$("#res").innerHTML="";};
+$("#go").onclick=analyze;
+$("#inp").addEventListener("keydown",e=>{if(e.ctrlKey&&e.key==="Enter")analyze();});
+
+async function analyze(){
+  const t=$("#inp").value.trim();
+  if(!t){toast("Type or paste a headline first");return;}
+  $("#go").disabled=true; $("#go").textContent="Analyzing...";
+  try{
+    const r=await api("/predict",{text:t,threshold:+$("#th").value/100});
+    last=r; showResult(r); saveHist(r);
+  }catch(e){toast(e.message);}
+  $("#go").disabled=false; $("#go").textContent="Analyze ✨";
+}
+
+function showResult(r){
+  const u=r.unsure, k=u?"Other":r.label;
+  const [em,c]=COL[k]||["📰","#64748b"];
+  const shown=u?"Other (unsure)":r.label;
+  const pct=Math.round(r.confidence*100);
+  const bars=Object.entries(r.scores).sort((a,b)=>b[1]-a[1]).map(([n,v])=>{
+    const [e,cc]=COL[n]||["","#64748b"];
+    return `<div class="bar"><span>${e} ${esc(n)}</span><div class="track"><i style="width:${v*100}%;background:${cc}"></i></div><b>${Math.round(v*100)}%</b></div>`;
+  }).join("");
+  const opts=Object.keys(r.scores).map(n=>`<option>${esc(n)}</option>`).join("");
+  $("#res").innerHTML=`<div class="card">
+    <div class="row" style="margin:0;justify-content:space-between">
+      <span class="badge" style="background:${c}">${em} ${esc(shown)}</span>
+      <div style="text-align:right"><div style="font-size:1.8rem;font-weight:800">${pct}%</div><div class="meta">confidence</div></div>
+    </div>
+    <p dir="auto" style="margin:12px 0;line-height:1.6">${esc(r.text)}</p>
+    <div class="row" style="margin:0 0 8px">
+      <span class="tag" style="background:#6366f1">🌐 ${esc(r.language)}</span>
+      ${u?'<span class="tag" style="background:#f59e0b">⚠️ Low confidence - please review</span>':""}
+    </div>
+    ${bars}
+    <div class="row">
+      <button class="btn alt" onclick="copyRes()">📋 Copy</button>
+      <span class="meta">Wrong?</span>
+      <select id="fb">${opts}</select>
+      <button class="btn alt" onclick="sendFb()">Send fix</button>
+    </div></div>`;
+}
+
+function copyRes(){
+  const s=(last.unsure?"Other (unsure)":last.label)+" ("+Math.round(last.confidence*100)+"%) | "+last.text;
+  navigator.clipboard.writeText(s).then(()=>toast("Copied ✅"),()=>toast("Copy not allowed here"));
+}
+async function sendFb(){
+  try{
+    await api("/feedback",{text:last.text,predicted:last.unsure?"Other (unsure)":last.label,correct:$("#fb").value});
+    toast("Thanks! Saved for retraining ✅");
+  }catch(e){toast(e.message);}
+}
+
+// history
+function saveHist(r){
+  const h=JSON.parse(localStorage.getItem("kn_hist")||"[]");
+  h.unshift({t:r.text,l:r.label,u:r.unsure,c:r.confidence,d:new Date().toLocaleString()});
+  localStorage.setItem("kn_hist",JSON.stringify(h.slice(0,40)));
+}
+function renderHist(){
+  const h=JSON.parse(localStorage.getItem("kn_hist")||"[]");
+  if(!h.length){$("#hres").innerHTML='<div class="card meta">No history yet. Analyze a headline first.</div>';return;}
+  const cnt={}; h.forEach(x=>{const k=x.u?"Other":x.l;cnt[k]=(cnt[k]||0)+1;});
+  const chips=Object.entries(cnt).map(([k,v])=>tag(k,false)+' <b>'+v+'</b>').join(" &nbsp; ");
+  const rows=h.map(x=>`<tr><td dir="auto">${esc(x.t)}</td><td>${tag(x.l,x.u)}</td><td>${Math.round(x.c*100)}%</td></tr>`).join("");
+  $("#hres").innerHTML=`<div class="card"><div style="line-height:2.2">${chips}</div>
+    <div class="row"><button class="btn alt" onclick="clearHist()">🗑️ Clear history</button></div></div>
+    <div class="card tbl"><table><tr><th>Headline</th><th>Category</th><th>Conf.</th></tr>${rows}</table></div>`;
+}
+function clearHist(){localStorage.removeItem("kn_hist");renderHist();toast("History cleared");}
+
+// batch
+$("#runB").onclick=async()=>{
+  const lines=$("#bin").value.split("\n").map(s=>s.trim()).filter(Boolean);
+  if(!lines.length){toast("Add at least one headline");return;}
+  if(lines.length>200){toast("Maximum 200 lines");return;}
+  $("#runB").disabled=true; $("#runB").textContent="Working...";
+  try{
+    const r=await api("/predict_batch",{texts:lines,threshold:+$("#th").value/100});
+    batch=r.results;
+    const cnt={}; batch.forEach(x=>{const k=x.unsure?"Other":x.label;cnt[k]=(cnt[k]||0)+1;});
+    const chips=Object.entries(cnt).map(([k,v])=>tag(k,false)+' <b>'+v+'</b>').join(" &nbsp; ");
+    const rows=batch.map((x,i)=>`<tr><td>${i+1}</td><td dir="auto">${esc(x.text)}</td><td>${tag(x.label,x.unsure)}</td><td>${Math.round(x.confidence*100)}%</td><td>${esc(x.language)}</td></tr>`).join("");
+    $("#bres").innerHTML=`<div class="card"><div style="line-height:2.2">${chips}</div></div>
+      <div class="card tbl"><table><tr><th>#</th><th>Headline</th><th>Category</th><th>Conf.</th><th>Lang</th></tr>${rows}</table></div>`;
+  }catch(e){toast(e.message);}
+  $("#runB").disabled=false; $("#runB").textContent="Classify all 🚀";
+};
+$("#dlB").onclick=()=>{
+  if(!batch.length){toast("Run a batch first");return;}
+  const rows=[["text","category","confidence","language"],...batch.map(r=>[r.text,r.unsure?"Other (unsure)":r.label,r.confidence,r.language])];
+  const csv="\ufeff"+rows.map(a=>a.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(",")).join("\n");
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+  a.download="karak_news_labels.csv"; a.click();
+};
+</script>
+</body>
+  </html>
