@@ -1,0 +1,10 @@
+transformers
+torch
+datasets
+accelerate
+scikit-learn
+pandas
+fastapi
+uvicorn
+pyngrok
+nest_asyncio
