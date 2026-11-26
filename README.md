@@ -16,7 +16,7 @@ About 86% accuracy on a small test set (22 headlines). The dataset is
 small (86 headlines), so treat this as a learning project.
 
 ## Files
-- `train.ipynb` - training and evaluation
+- `Train.ipynb` - training and evaluation
 - `app.py` + `index.html` - FastAPI app and UI
 - `news_data.csv` - training data
 
